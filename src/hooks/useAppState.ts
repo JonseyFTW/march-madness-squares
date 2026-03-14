@@ -10,7 +10,8 @@ function loadState(): AppState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return parsed;
+      // Always use the latest grid from code so updates are reflected
+      return { ...parsed, grid: DEFAULT_GRID };
     }
   } catch (e) {
     console.error('Failed to load state:', e);
