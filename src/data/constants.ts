@@ -35,16 +35,16 @@ export function getRoundName(round: RoundNumber): string {
 }
 
 export const DEFAULT_GRID: string[][] = [
-  ['Eric Moore', 'Devin Pflueger', 'Chad Jones', '', 'Chad Jones', '', 'Spenser Todd', '', '', 'Shelby Moore'],
-  ['Camden Jackson', 'Devin Pflueger', 'Colton Moore', 'Chad Jones', '', 'Cole Jackson', '', '', '', ''],
-  ['Scott Askelson', 'Spenser Todd', 'Jackie Askelson', 'Devin Pflueger', 'Colton Moore', '', '', 'Chad Jones', 'Jaycek Jackson', ''],
-  ['', 'Scott Askelson', '', 'Gunnar Gregory', 'Devin Pflueger', 'Colton Moore', '', '', 'Jason Simonton', 'Nikki Jackson'],
-  ['Laura Brizell', '', 'Scott Askelson', '', '', 'Devin Pflueger', 'Colton Moore', 'Nick Capouch', '', 'Spenser Todd'],
-  ['Morgan Carroll', '', 'Scott Brizell', 'Scott Askelson', '', 'Skyler Brady', 'Jason Simonton', 'Colton Moore', '', ''],
-  ['', 'Morgan Carroll', 'Jason Simonton', 'Nick Capouch', 'Skyler Brady', 'Laura Brizell', 'Cole Jackson', '', 'Chad Jones', ''],
-  ['', 'Jason Simonton', '', 'Skyler Brady', 'Spenser Todd', 'Morgan Carroll', 'Camden Jackson', 'Gunnar Gregory', '', ''],
-  ['', 'Jaycek Jackson', 'Skyler Brady', '', 'Nikki Jackson', '', 'Morgan Carroll', 'Scott Brizell', '', ''],
-  ['Shelby Moore', 'Skyler Brady', '', '', '', '', '', '', 'Morgan Carroll', 'Eric Moore'],
+  ['Eric Moore', 'Devin Pflueger', 'Chad Jones', 'Lance McIlvain', 'Chad Jones', 'Rene Anderson', 'Spenser Todd', 'Scott Askelson', 'Sarah McFarland', 'Shelby Moore'],
+  ['Sarah McFarland', 'Camden Jackson', 'Devin Pflueger', 'Colton Moore', 'Chad Jones', 'Eric McFarland', 'Cole Jackson', 'Tuff Brady', 'Scott Askelson', 'Tommy Thacker'],
+  ['Scott Askelson', 'Spenser Todd', 'Jackie Askelson', 'Devin Pflueger', 'Colton Moore', 'Ty McFarland', 'Rene Anderson', 'Chad Jones', 'Jaycek Jackson', 'Scott Askelson'],
+  ['Karen McIlvain', 'Scott Askelson', 'Ryan Millett', 'Gunnar Gregory', 'Devin Pflueger', 'Colton Moore', 'Collin Strawn', 'Rene Anderson', 'Jason Simonton', 'Nikki Jackson'],
+  ['Laura Brizell', 'Lance McIlvain', 'Scott Askelson', 'Ryan Millett', 'Kelly Nicholls', 'Devin Pflueger', 'Colton Moore', 'Nick Capouch', 'Steve Sanberg', 'Spenser Todd'],
+  ['Morgan Carroll', 'Ty McFarland', 'Scott Brizell', 'Scott Askelson', 'Ryan Millett', 'Skyler Brady', 'Jason Simonton', 'Colton Moore', 'Stetson Christensen', 'Deklon Brady'],
+  ['Rene Anderson', 'Morgan Carroll', 'Jason Simonton', 'Nick Capouch', 'Skyler Brady', 'Laura Brizell', 'Cole Jackson', 'Ryan Kearney', 'Chad Jones', 'Stetson Christensen'],
+  ['Braylon Brady', 'Jason Simonton', 'Collin Strawn', 'Deklon Brady', 'Spenser Todd', 'Morgan Carroll', 'Camden Jackson', 'Gunnar Gregory', 'Tommy Thacker', 'Karen McIlvain'],
+  ['Tommy Thacker', 'Jaycek Jackson', 'Skyler Brady', 'Ty McFarland', 'Nikki Jackson', 'Tommy Thacker', 'Morgan Carroll', 'Scott Brizell', 'Tuff Brady', ''],
+  ['Shelby Moore', 'Skyler Brady', 'Braylon Brady', 'Tommy Thacker', 'Rene Anderson', 'Stetson Christensen', 'Sarah McFarland', 'Stetson Christensen', 'Morgan Carroll', 'Eric Moore'],
 ];
 
 export const REGIONS = ['East', 'West', 'South', 'Midwest'] as const;
