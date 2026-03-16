@@ -110,9 +110,9 @@ function parseESPNEvent(event: ESPNEvent): ESPNGame {
   const comp = event.competitions[0];
   const competitors = comp.competitors;
 
-  // ESPN order: 0 = home, 1 = away. We put higher seed on top.
-  const home = competitors.find(c => c.order === 1) || competitors[0];
-  const away = competitors.find(c => c.order === 2) || competitors[1];
+  // ESPN: competitors[0] is home, competitors[1] is away
+  const home = competitors[0];
+  const away = competitors[1];
 
   const homeSeed = home?.curatedRank?.current;
   const awaySeed = away?.curatedRank?.current;
