@@ -22,6 +22,8 @@ export interface Game {
   bottomTeamScore?: number;
   status: GameStatus;
   scheduledDate?: string;
+  espnId?: string;
+  statusDetail?: string;
   winningTeam?: string;
   losingTeam?: string;
   winningDigit?: number;

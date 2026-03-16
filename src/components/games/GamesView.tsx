@@ -1,8 +1,15 @@
 import { useState, useMemo } from 'react';
 import { Game, RoundNumber } from '../../types';
 import { ROUNDS, getRoundName, CHAMPIONSHIP_RIGHT_WAY, CHAMPIONSHIP_WRONG_WAY } from '../../data/constants';
-import { ChevronDown, ChevronRight, Edit3, Check, X, RefreshCw } from 'lucide-react';
-import { fetchTournamentScores } from '../../utils/espnApi';
+import { ChevronDown, ChevronRight, Edit3, Check, X, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react';
+
+interface ESPNSyncInfo {
+  isSyncing: boolean;
+  lastSync: Date | null;
+  syncError: string | null;
+  liveCount: number;
+  sync: () => Promise<void>;
+}
 
 interface GamesViewProps {
   games: Game[];
@@ -11,20 +18,22 @@ interface GamesViewProps {
   onUpdateGame: (gameId: string, updates: Partial<Game>) => void;
   onAddGame: (game: Game) => void;
   onRemoveGame: (gameId: string) => void;
+  espnSync?: ESPNSyncInfo;
 }
 
-export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGame, onRemoveGame }: GamesViewProps) {
-  const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set([64, 32, 16, 8, 4, 2]));
+export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGame, onRemoveGame, espnSync }: GamesViewProps) {
+  const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set([68, 64, 32, 16, 8, 4, 2]));
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Game>>({});
-  const [fetchingScores, setFetchingScores] = useState(false);
-  const [fetchMessage, setFetchMessage] = useState('');
 
   const roundGroups = useMemo(() => {
     const groups = new Map<RoundNumber, Game[]>();
-    const roundOrder: RoundNumber[] = [64, 32, 16, 8, 4, 2];
+    const roundOrder: RoundNumber[] = [68, 64, 32, 16, 8, 4, 2];
     for (const r of roundOrder) {
-      groups.set(r, games.filter(g => g.round === r).sort((a, b) => a.gameNumber - b.gameNumber));
+      const roundGames = games.filter(g => g.round === r).sort((a, b) => a.gameNumber - b.gameNumber);
+      if (roundGames.length > 0) {
+        groups.set(r, roundGames);
+      }
     }
     return groups;
   }, [games]);
@@ -58,24 +67,6 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
     setEditForm({});
   };
 
-  const handleFetchScores = async () => {
-    setFetchingScores(true);
-    setFetchMessage('Fetching scores from ESPN...');
-    try {
-      const result = await fetchTournamentScores();
-      if (result.error) {
-        setFetchMessage(`Error: ${result.error}`);
-      } else if (result.games.length === 0) {
-        setFetchMessage('No tournament games found. The tournament may not have started yet.');
-      } else {
-        setFetchMessage(`Found ${result.games.length} games from ESPN. Match them manually to your game slots.`);
-      }
-    } catch {
-      setFetchMessage('Failed to fetch scores. Try again later.');
-    }
-    setFetchingScores(false);
-  };
-
   const addNewGame = (round: RoundNumber) => {
     const roundGames = games.filter(g => g.round === round);
     const nextNum = roundGames.length + 1;
@@ -93,23 +84,59 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Header with sync status */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-xl font-black text-white tracking-tight">GAMES & RESULTS</h2>
-        {isAdmin && (
+        <div className="flex items-center gap-3">
+          {/* Live indicator */}
+          {espnSync && espnSync.liveCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 border border-red-500/30 rounded-full animate-pulse">
+              <div className="w-2 h-2 bg-red-500 rounded-full" />
+              <span className="text-xs font-bold text-red-400">{espnSync.liveCount} LIVE</span>
+            </div>
+          )}
+
+          {/* Sync status */}
+          {espnSync && (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              {espnSync.lastSync ? (
+                <span className="flex items-center gap-1">
+                  <Wifi size={12} className="text-green-500" />
+                  {espnSync.lastSync.toLocaleTimeString()}
+                </span>
+              ) : espnSync.syncError ? (
+                <span className="flex items-center gap-1 text-red-400">
+                  <WifiOff size={12} />
+                  Error
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {/* Refresh button */}
           <button
-            onClick={handleFetchScores}
-            disabled={fetchingScores}
-            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-xs font-semibold text-white transition"
+            onClick={() => espnSync?.sync()}
+            disabled={espnSync?.isSyncing}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-xs font-semibold text-white transition"
           >
-            <RefreshCw size={14} className={fetchingScores ? 'animate-spin' : ''} />
-            Fetch ESPN Scores
+            <RefreshCw size={14} className={espnSync?.isSyncing ? 'animate-spin' : ''} />
+            {espnSync?.isSyncing ? 'Syncing...' : 'Refresh'}
           </button>
-        )}
+        </div>
       </div>
 
-      {fetchMessage && (
-        <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg px-4 py-2 text-sm text-blue-300">
-          {fetchMessage}
+      {/* Sync error */}
+      {espnSync?.syncError && (
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg px-4 py-2 text-sm text-red-300">
+          {espnSync.syncError}
+        </div>
+      )}
+
+      {/* Auto-refresh note */}
+      {espnSync && espnSync.liveCount > 0 && (
+        <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2 text-xs text-gray-400 flex items-center gap-2">
+          <Clock size={12} />
+          Auto-refreshing every 30 seconds while games are live
         </div>
       )}
 
@@ -117,7 +144,11 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
       {Array.from(roundGroups.entries()).map(([round, roundGames]) => {
         const roundInfo = ROUNDS.find(r => r.round === round);
         const completedCount = roundGames.filter(g => g.status === 'final').length;
+        const liveCount = roundGames.filter(g => g.status === 'in_progress').length;
         const isExpanded = expandedRounds.has(round);
+
+        // Group by region if available
+        const regions = new Set(roundGames.map(g => g.region).filter(Boolean));
 
         return (
           <div key={round} className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden">
@@ -128,12 +159,20 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
               <div className="flex items-center gap-3">
                 {isExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
                 <span className="text-sm font-bold text-white">{getRoundName(round as RoundNumber)}</span>
-                <span className="text-xs text-gray-400">
-                  ${roundInfo?.payoutPerGame}/game
-                  {round === 2 && ` (Right: $${CHAMPIONSHIP_RIGHT_WAY}, Wrong: $${CHAMPIONSHIP_WRONG_WAY})`}
-                </span>
+                {round !== 68 && (
+                  <span className="text-xs text-gray-400">
+                    ${roundInfo?.payoutPerGame}/game
+                    {round === 2 && ` (Right: $${CHAMPIONSHIP_RIGHT_WAY}, Wrong: $${CHAMPIONSHIP_WRONG_WAY})`}
+                  </span>
+                )}
+                {round === 68 && <span className="text-xs text-gray-500">Play-in (no payout)</span>}
               </div>
               <div className="flex items-center gap-2">
+                {liveCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 animate-pulse">
+                    {liveCount} LIVE
+                  </span>
+                )}
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                   completedCount === roundGames.length && roundGames.length > 0
                     ? 'bg-green-500/20 text-green-400'
@@ -162,22 +201,49 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
                   </div>
                 ) : (
                   <>
-                    <div className="divide-y divide-gray-700/30">
-                      {roundGames.map(game => (
-                        <GameRow
-                          key={game.id}
-                          game={game}
-                          isEditing={editingGame === game.id}
-                          editForm={editForm}
-                          setEditForm={setEditForm}
-                          isAdmin={isAdmin}
-                          onStartEdit={() => startEdit(game)}
-                          onSave={() => saveEdit(game.id)}
-                          onCancel={cancelEdit}
-                          onRemove={() => onRemoveGame(game.id)}
-                        />
-                      ))}
-                    </div>
+                    {/* Group by region if we have region data */}
+                    {regions.size > 1 ? (
+                      Array.from(regions).sort().map(region => (
+                        <div key={region}>
+                          <div className="px-4 py-1.5 bg-gray-700/20 border-b border-gray-700/30">
+                            <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">{region} Region</span>
+                          </div>
+                          <div className="divide-y divide-gray-700/30">
+                            {roundGames.filter(g => g.region === region).map(game => (
+                              <GameRow
+                                key={game.id}
+                                game={game}
+                                isEditing={editingGame === game.id}
+                                editForm={editForm}
+                                setEditForm={setEditForm}
+                                isAdmin={isAdmin}
+                                onStartEdit={() => startEdit(game)}
+                                onSave={() => saveEdit(game.id)}
+                                onCancel={cancelEdit}
+                                onRemove={() => onRemoveGame(game.id)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="divide-y divide-gray-700/30">
+                        {roundGames.map(game => (
+                          <GameRow
+                            key={game.id}
+                            game={game}
+                            isEditing={editingGame === game.id}
+                            editForm={editForm}
+                            setEditForm={setEditForm}
+                            isAdmin={isAdmin}
+                            onStartEdit={() => startEdit(game)}
+                            onSave={() => saveEdit(game.id)}
+                            onCancel={cancelEdit}
+                            onRemove={() => onRemoveGame(game.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
                     {isAdmin && (
                       <div className="px-4 py-2 border-t border-gray-700/30">
                         <button
@@ -286,31 +352,88 @@ function GameRow({
     final: 'bg-green-500/20 text-green-400',
   };
 
+  const formatScheduledDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+
   return (
-    <div className="px-4 py-3 flex items-center gap-3 hover:bg-gray-700/20 transition group">
+    <div className={`px-4 py-3 flex items-center gap-3 hover:bg-gray-700/20 transition group ${
+      game.status === 'in_progress' ? 'bg-red-500/5 border-l-2 border-red-500' : ''
+    }`}>
       <span className="text-xs text-gray-500 w-8 text-center font-mono">#{game.gameNumber}</span>
 
       <div className="flex-1 min-w-0">
+        {/* Top team */}
         <div className="flex items-center gap-2">
-          <span className={`text-sm font-semibold ${game.status === 'final' && game.winningTeam === game.topTeam ? 'text-white' : 'text-gray-300'}`}>
+          {game.topTeamSeed && (
+            <span className="text-[10px] font-bold text-gray-500 bg-gray-700/50 rounded px-1 py-0.5 min-w-[20px] text-center">
+              {game.topTeamSeed}
+            </span>
+          )}
+          <span className={`text-sm font-semibold ${
+            game.status === 'final' && game.winningTeam === game.topTeam
+              ? 'text-white'
+              : game.status === 'final' && game.winningTeam && game.winningTeam !== game.topTeam
+              ? 'text-gray-500'
+              : 'text-gray-300'
+          }`}>
             {game.topTeam || 'TBD'}
           </span>
-          <span className="text-xs text-gray-500">
-            {game.topTeamScore != null ? game.topTeamScore : ''}
-          </span>
+          {game.topTeamScore != null && (
+            <span className={`text-sm font-bold ${
+              game.status === 'final' && game.winningTeam === game.topTeam ? 'text-white' : 'text-gray-400'
+            }`}>
+              {game.topTeamScore}
+            </span>
+          )}
         </div>
+
+        {/* Bottom team */}
         <div className="flex items-center gap-2">
-          <span className={`text-sm font-semibold ${game.status === 'final' && game.winningTeam === game.bottomTeam ? 'text-white' : 'text-gray-300'}`}>
+          {game.bottomTeamSeed && (
+            <span className="text-[10px] font-bold text-gray-500 bg-gray-700/50 rounded px-1 py-0.5 min-w-[20px] text-center">
+              {game.bottomTeamSeed}
+            </span>
+          )}
+          <span className={`text-sm font-semibold ${
+            game.status === 'final' && game.winningTeam === game.bottomTeam
+              ? 'text-white'
+              : game.status === 'final' && game.winningTeam && game.winningTeam !== game.bottomTeam
+              ? 'text-gray-500'
+              : 'text-gray-300'
+          }`}>
             {game.bottomTeam || 'TBD'}
           </span>
-          <span className="text-xs text-gray-500">
-            {game.bottomTeamScore != null ? game.bottomTeamScore : ''}
-          </span>
+          {game.bottomTeamScore != null && (
+            <span className={`text-sm font-bold ${
+              game.status === 'final' && game.winningTeam === game.bottomTeam ? 'text-white' : 'text-gray-400'
+            }`}>
+              {game.bottomTeamScore}
+            </span>
+          )}
         </div>
+
+        {/* Scheduled date for upcoming games */}
+        {game.status === 'upcoming' && game.scheduledDate && (
+          <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1">
+            <Clock size={10} />
+            {formatScheduledDate(game.scheduledDate)}
+          </div>
+        )}
+
+        {/* Region tag */}
+        {game.region && (
+          <span className="text-[9px] font-semibold text-gray-500 uppercase tracking-wider">
+            {game.region}
+          </span>
+        )}
       </div>
 
+      {/* Square winner info for final games */}
       {game.status === 'final' && game.squareWinner && (
-        <div className="text-right">
+        <div className="text-right shrink-0">
           <div className="text-xs text-gray-400">
             ({game.winningDigit}, {game.losingDigit})
           </div>
@@ -324,10 +447,21 @@ function GameRow({
         </div>
       )}
 
-      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColors[game.status]}`}>
-        {game.status === 'in_progress' ? 'LIVE' : game.status.toUpperCase()}
+      {/* Live score detail */}
+      {game.status === 'in_progress' && game.statusDetail && (
+        <div className="text-right shrink-0">
+          <span className="text-[10px] font-semibold text-red-400">{game.statusDetail}</span>
+        </div>
+      )}
+
+      {/* Status badge */}
+      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusColors[game.status]} ${
+        game.status === 'in_progress' ? 'animate-pulse' : ''
+      }`}>
+        {game.status === 'in_progress' ? '● LIVE' : game.status.toUpperCase()}
       </span>
 
+      {/* Admin edit button */}
       {isAdmin && (
         <button
           onClick={onStartEdit}

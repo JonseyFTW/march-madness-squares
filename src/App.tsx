@@ -7,6 +7,7 @@ import GamesView from './components/games/GamesView';
 import Leaderboard from './components/leaderboard/Leaderboard';
 import AdminPanel from './components/admin/AdminPanel';
 import { useAppState } from './hooks/useAppState';
+import { useESPNSync } from './hooks/useESPNSync';
 import { CONFETTI_ROUNDS } from './data/constants';
 import { Game, RoundNumber } from './types';
 
@@ -22,9 +23,16 @@ function App() {
     removeGame,
     recalculateAllGames,
     resetGames,
+    syncGames,
     login,
     logout,
   } = useAppState();
+
+  const espnSync = useESPNSync({
+    games: state.games,
+    grid: state.grid,
+    onSyncGames: syncGames,
+  });
 
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [highlightSquare, setHighlightSquare] = useState<{ row: number; col: number } | null>(null);
@@ -104,6 +112,7 @@ function App() {
             onUpdateGame={handleUpdateGame}
             onAddGame={addGame}
             onRemoveGame={removeGame}
+            espnSync={espnSync}
           />
         )}
         {activeTab === 'leaderboard' && (

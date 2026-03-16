@@ -110,6 +110,10 @@ export function useAppState() {
 
   const logout = useCallback(() => setIsAdmin(false), []);
 
+  const syncGames = useCallback((games: Game[]) => {
+    setState(prev => ({ ...prev, games, lastUpdated: new Date().toISOString() }));
+  }, []);
+
   return {
     state,
     isAdmin,
@@ -119,6 +123,7 @@ export function useAppState() {
     removeGame,
     recalculateAllGames,
     resetGames,
+    syncGames,
     login,
     logout,
   };
