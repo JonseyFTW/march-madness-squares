@@ -51,6 +51,8 @@ export interface AppState {
   adminPassword: string;
   tournamentYear: number;
   lastUpdated: string;
+  columnDigits: number[]; // Winner's digit order (10 values, each 0-9)
+  rowDigits: number[]; // Loser's digit order (10 values, each 0-9)
 }
 
 export interface RoundInfo {

@@ -17,7 +17,10 @@ function App() {
   const {
     state,
     isAdmin,
+    isLoading,
+    dbConnected,
     updateGrid,
+    updateDigitOrder,
     updateGame,
     addGame,
     removeGame,
@@ -31,6 +34,8 @@ function App() {
   const espnSync = useESPNSync({
     games: state.games,
     grid: state.grid,
+    columnDigits: state.columnDigits,
+    rowDigits: state.rowDigits,
     onSyncGames: syncGames,
   });
 
@@ -99,10 +104,10 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-4 py-6 relative">
         {activeTab === 'dashboard' && (
-          <Dashboard grid={state.grid} games={state.games} onNavigate={handleNavigate} />
+          <Dashboard grid={state.grid} games={state.games} columnDigits={state.columnDigits} rowDigits={state.rowDigits} onNavigate={handleNavigate} />
         )}
         {activeTab === 'board' && (
-          <SquareGrid grid={state.grid} games={state.games} highlightSquare={highlightSquare} />
+          <SquareGrid grid={state.grid} games={state.games} columnDigits={state.columnDigits} rowDigits={state.rowDigits} highlightSquare={highlightSquare} />
         )}
         {activeTab === 'games' && (
           <GamesView
@@ -122,10 +127,13 @@ function App() {
           <AdminPanel
             grid={state.grid}
             games={state.games}
+            columnDigits={state.columnDigits}
+            rowDigits={state.rowDigits}
             isAdmin={isAdmin}
             onLogin={login}
             onLogout={logout}
             onUpdateGrid={updateGrid}
+            onUpdateDigitOrder={updateDigitOrder}
             onUpdateGame={handleUpdateGame}
             onAddGame={addGame}
             onRecalculate={recalculateAllGames}
@@ -138,6 +146,8 @@ function App() {
           <p>March Madness Squares Pool Tracker 2026</p>
           <p className="mt-1">
             Last updated: {new Date(state.lastUpdated).toLocaleString()}
+            {dbConnected && <span className="ml-2 text-green-500" title="Connected to database">&#x25CF; Synced</span>}
+            {!dbConnected && !isLoading && <span className="ml-2 text-yellow-500" title="Using local storage only">&#x25CF; Local</span>}
           </p>
         </footer>
       </main>

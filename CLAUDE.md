@@ -85,6 +85,13 @@ src/
 - **Password**: `madness2026` (stored in state, checked client-side)
 - Admin can manually edit games, add/remove games, recalculate all results, reset games
 
+## Database (Vercel Postgres)
+- **Schema**: `db/schema.sql` — `boards` table (grid, digit order, settings) + `games` table (individual games as JSONB)
+- **API Routes**: `/api/state.ts` (GET/POST board config), `/api/games.ts` (CRUD games), `/api/seed.ts` (initialize DB)
+- **Setup**: Create a Vercel Postgres database, link it to the project, then call `POST /api/seed` once to initialize
+- **Fallback**: If the database is unavailable, the app falls back to localStorage (footer shows "Local" vs "Synced")
+- **Board ID**: Currently uses `'default'` — designed for future multi-board support
+
 ## Deployment Notes
 - **No vitest** — removed test files that were breaking Vercel build. Don't add vitest without adding it to package.json dependencies.
 - Vercel auto-deploys on push to `main`
@@ -92,5 +99,5 @@ src/
 - Git credentials use `gh auth` via Homebrew-installed GitHub CLI at `/usr/local/bin/gh`
 - Old `/tmp/gh_install/...` path may appear in warnings but doesn't affect pushes
 
-## Square 90
-Square 90 (row 8, col 9) is intentionally blank — no owner assigned.
+## Score Digit Order
+The grid's row and column headers use randomized digit orders (not sequential 0-9). These are stored as `columnDigits` (winner) and `rowDigits` (loser) in `AppState` and `DEFAULT_COLUMN_DIGITS`/`DEFAULT_ROW_DIGITS` in constants.ts. The `calculateGameResult` function converts raw score digits to grid indices using these arrays.
