@@ -85,6 +85,13 @@ src/
 - **Password**: `madness2026` (stored in state, checked client-side)
 - Admin can manually edit games, add/remove games, recalculate all results, reset games
 
+## Database (Vercel Postgres)
+- **Schema**: `db/schema.sql` — `boards` table (grid, digit order, settings) + `games` table (individual games as JSONB)
+- **API Routes**: `/api/state.ts` (GET/POST board config), `/api/games.ts` (CRUD games), `/api/seed.ts` (initialize DB)
+- **Setup**: Create a Vercel Postgres database, link it to the project, then call `POST /api/seed` once to initialize
+- **Fallback**: If the database is unavailable, the app falls back to localStorage (footer shows "Local" vs "Synced")
+- **Board ID**: Currently uses `'default'` — designed for future multi-board support
+
 ## Deployment Notes
 - **No vitest** — removed test files that were breaking Vercel build. Don't add vitest without adding it to package.json dependencies.
 - Vercel auto-deploys on push to `main`

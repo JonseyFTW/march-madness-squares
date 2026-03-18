@@ -17,6 +17,8 @@ function App() {
   const {
     state,
     isAdmin,
+    isLoading,
+    dbConnected,
     updateGrid,
     updateDigitOrder,
     updateGame,
@@ -144,6 +146,8 @@ function App() {
           <p>March Madness Squares Pool Tracker 2026</p>
           <p className="mt-1">
             Last updated: {new Date(state.lastUpdated).toLocaleString()}
+            {dbConnected && <span className="ml-2 text-green-500" title="Connected to database">&#x25CF; Synced</span>}
+            {!dbConnected && !isLoading && <span className="ml-2 text-yellow-500" title="Using local storage only">&#x25CF; Local</span>}
           </p>
         </footer>
       </main>
