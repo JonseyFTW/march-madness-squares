@@ -1,27 +1,39 @@
 import { useState } from 'react';
 import { Game, RoundNumber } from '../../types';
-import { Lock, Unlock, Grid3X3, Plus, Trash2, RefreshCw, AlertTriangle, Calculator } from 'lucide-react';
+import { Lock, Unlock, Grid3X3, Plus, Trash2, RefreshCw, AlertTriangle, Calculator, Hash } from 'lucide-react';
 
 interface AdminPanelProps {
   grid: string[][];
   games: Game[];
+  columnDigits: number[];
+  rowDigits: number[];
   isAdmin: boolean;
   onLogin: (password: string) => boolean;
   onLogout: () => void;
   onUpdateGrid: (grid: string[][]) => void;
+  onUpdateDigitOrder: (columnDigits: number[], rowDigits: number[]) => void;
   onUpdateGame: (gameId: string, updates: Partial<Game>) => void;
   onAddGame: (game: Game) => void;
   onRecalculate: () => void;
   onResetGames: () => void;
 }
 
+function isValidDigitOrder(digits: number[]): boolean {
+  if (digits.length !== 10) return false;
+  const sorted = [...digits].sort((a, b) => a - b);
+  return sorted.every((d, i) => d === i);
+}
+
 export default function AdminPanel({
   grid,
   games,
+  columnDigits,
+  rowDigits,
   isAdmin,
   onLogin,
   onLogout,
   onUpdateGrid,
+  onUpdateDigitOrder,
   onUpdateGame,
   onAddGame,
   onRecalculate,
@@ -29,7 +41,7 @@ export default function AdminPanel({
 }: AdminPanelProps) {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
-  const [activeSection, setActiveSection] = useState<'grid' | 'quickEntry' | 'tools'>('quickEntry');
+  const [activeSection, setActiveSection] = useState<'grid' | 'quickEntry' | 'tools' | 'digitOrder'>('quickEntry');
 
   // Quick game entry
   const [quickRound, setQuickRound] = useState<RoundNumber>(64);
@@ -43,6 +55,11 @@ export default function AdminPanel({
   const [whatIfScore1, setWhatIfScore1] = useState('');
   const [whatIfScore2, setWhatIfScore2] = useState('');
   const [whatIfResult, setWhatIfResult] = useState('');
+
+  // Digit order editing
+  const [editColumnDigits, setEditColumnDigits] = useState<string[]>(columnDigits.map(String));
+  const [editRowDigits, setEditRowDigits] = useState<string[]>(rowDigits.map(String));
+  const [digitOrderMessage, setDigitOrderMessage] = useState('');
 
   if (!isAdmin) {
     return (
@@ -130,8 +147,27 @@ export default function AdminPanel({
     }
     const winDigit = Math.max(s1, s2) % 10;
     const loseDigit = Math.min(s1, s2) % 10;
-    const winner = grid[loseDigit]?.[winDigit] || 'Unassigned';
+    const colIdx = columnDigits.indexOf(winDigit);
+    const rowIdx = rowDigits.indexOf(loseDigit);
+    const winner = grid[rowIdx]?.[colIdx] || 'Unassigned';
     setWhatIfResult(`Score ${Math.max(s1, s2)}-${Math.min(s1, s2)} → Winner digit: ${winDigit}, Loser digit: ${loseDigit} → Square owner: ${winner}`);
+  };
+
+  const handleSaveDigitOrder = () => {
+    const newColDigits = editColumnDigits.map(Number);
+    const newRowDigits = editRowDigits.map(Number);
+
+    if (!isValidDigitOrder(newColDigits)) {
+      setDigitOrderMessage('Winner digits must contain each digit 0-9 exactly once.');
+      return;
+    }
+    if (!isValidDigitOrder(newRowDigits)) {
+      setDigitOrderMessage('Loser digits must contain each digit 0-9 exactly once.');
+      return;
+    }
+
+    onUpdateDigitOrder(newColDigits, newRowDigits);
+    setDigitOrderMessage('Digit order saved! Remember to Recalculate All Games if games have already been scored.');
   };
 
   return (
@@ -147,10 +183,11 @@ export default function AdminPanel({
       </div>
 
       {/* Section tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {[
           { id: 'quickEntry' as const, label: 'Quick Entry', icon: <Plus size={14} /> },
           { id: 'grid' as const, label: 'Edit Grid', icon: <Grid3X3 size={14} /> },
+          { id: 'digitOrder' as const, label: 'Score Order', icon: <Hash size={14} /> },
           { id: 'tools' as const, label: 'Tools', icon: <Calculator size={14} /> },
         ].map(tab => (
           <button
@@ -240,15 +277,15 @@ export default function AdminPanel({
               <thead>
                 <tr>
                   <th className="p-1 text-gray-500"></th>
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <th key={i} className="p-1 text-orange-400 font-bold">{i}</th>
+                  {columnDigits.map((digit, i) => (
+                    <th key={i} className="p-1 text-orange-400 font-bold">{digit}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {grid.map((row, ri) => (
                   <tr key={ri}>
-                    <td className="p-1 text-orange-400 font-bold text-center">{ri}</td>
+                    <td className="p-1 text-orange-400 font-bold text-center">{rowDigits[ri]}</td>
                     {row.map((cell, ci) => (
                       <td key={ci} className="p-0.5">
                         <input
@@ -267,6 +304,86 @@ export default function AdminPanel({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Digit Order Editor */}
+      {activeSection === 'digitOrder' && (
+        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 space-y-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Hash size={16} className="text-orange-400" />
+            Edit Score Digit Order
+          </h3>
+          <p className="text-xs text-gray-400">
+            Set the randomized digit order for the winning (columns) and losing (rows) team scores.
+            Each row must contain digits 0-9 exactly once.
+          </p>
+
+          {/* Winner (Column) digits */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-orange-400 uppercase tracking-wide">
+              Winner's Digits (Columns, left to right)
+            </label>
+            <div className="grid grid-cols-10 gap-1">
+              {editColumnDigits.map((val, i) => (
+                <input
+                  key={`col-${i}`}
+                  type="number"
+                  min={0}
+                  max={9}
+                  value={val}
+                  onChange={e => {
+                    const updated = [...editColumnDigits];
+                    updated[i] = e.target.value;
+                    setEditColumnDigits(updated);
+                  }}
+                  className="bg-gray-700 text-white text-sm text-center rounded px-1 py-2 border border-gray-600 focus:border-orange-400 outline-none w-full"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Loser (Row) digits */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-orange-400 uppercase tracking-wide">
+              Loser's Digits (Rows, top to bottom)
+            </label>
+            <div className="grid grid-cols-10 gap-1">
+              {editRowDigits.map((val, i) => (
+                <input
+                  key={`row-${i}`}
+                  type="number"
+                  min={0}
+                  max={9}
+                  value={val}
+                  onChange={e => {
+                    const updated = [...editRowDigits];
+                    updated[i] = e.target.value;
+                    setEditRowDigits(updated);
+                  }}
+                  className="bg-gray-700 text-white text-sm text-center rounded px-1 py-2 border border-gray-600 focus:border-orange-400 outline-none w-full"
+                />
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveDigitOrder}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 rounded-lg transition text-sm"
+          >
+            Save Digit Order
+          </button>
+
+          {digitOrderMessage && (
+            <p className={`text-xs ${digitOrderMessage.includes('saved') ? 'text-green-400' : 'text-red-400'}`}>
+              {digitOrderMessage}
+            </p>
+          )}
+
+          <div className="text-xs text-gray-500 bg-gray-900/50 rounded-lg p-3 space-y-1">
+            <p><strong>Current Column Order:</strong> {columnDigits.join(', ')}</p>
+            <p><strong>Current Row Order:</strong> {rowDigits.join(', ')}</p>
           </div>
         </div>
       )}

@@ -1,17 +1,19 @@
 import { useMemo } from 'react';
 import { Game } from '../../types';
 import { TOTAL_POT, ROUNDS, getRoundName } from '../../data/constants';
-import { getTotalPaidOut, getCurrentRound, getCompletedGamesCount } from '../../utils/gameUtils';
+import { getTotalPaidOut, getCurrentRound, getCompletedGamesCount, digitToGridIndex } from '../../utils/gameUtils';
 import { calculateParticipants } from '../../utils/participantUtils';
 import { DollarSign, TrendingUp, Trophy, Zap, Clock, Target } from 'lucide-react';
 
 interface DashboardProps {
   grid: string[][];
   games: Game[];
+  columnDigits: number[];
+  rowDigits: number[];
   onNavigate: (tab: string, highlight?: { row: number; col: number }) => void;
 }
 
-export default function Dashboard({ grid, games, onNavigate }: DashboardProps) {
+export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavigate }: DashboardProps) {
   const totalPaid = useMemo(() => getTotalPaidOut(games), [games]);
   const currentRound = useMemo(() => getCurrentRound(games), [games]);
   const completedCounts = useMemo(() => getCompletedGamesCount(games), [games]);
@@ -140,7 +142,10 @@ export default function Dashboard({ grid, games, onNavigate }: DashboardProps) {
                   className="flex items-center justify-between bg-gray-700/30 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-700/50 transition"
                   onClick={() => {
                     if (g.losingDigit != null && g.winningDigit != null) {
-                      onNavigate('board', { row: g.losingDigit, col: g.winningDigit });
+                      onNavigate('board', {
+                        row: digitToGridIndex(g.losingDigit, rowDigits),
+                        col: digitToGridIndex(g.winningDigit, columnDigits),
+                      });
                     }
                   }}
                 >

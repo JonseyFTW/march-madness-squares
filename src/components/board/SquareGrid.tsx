@@ -1,21 +1,29 @@
 import { useState, useMemo } from 'react';
 import { Game } from '../../types';
+import { digitToGridIndex } from '../../utils/gameUtils';
 import { X } from 'lucide-react';
 
 interface SquareGridProps {
   grid: string[][];
   games: Game[];
+  columnDigits: number[];
+  rowDigits: number[];
   highlightSquare?: { row: number; col: number } | null;
 }
 
-function getWinningsPerSquare(games: Game[]): Map<string, number> {
+function getWinningsPerSquare(games: Game[], columnDigits: number[], rowDigits: number[]): Map<string, number> {
   const map = new Map<string, number>();
   for (const game of games) {
     if (game.status !== 'final' || game.winningDigit == null || game.losingDigit == null) continue;
-    const key = `${game.losingDigit}-${game.winningDigit}`;
+    // Convert raw digits to grid indices
+    const colIdx = digitToGridIndex(game.winningDigit, columnDigits);
+    const rowIdx = digitToGridIndex(game.losingDigit, rowDigits);
+    const key = `${rowIdx}-${colIdx}`;
     map.set(key, (map.get(key) || 0) + (game.payout || 0));
     if (game.round === 2 && game.wrongWayPayout) {
-      const wrongKey = `${game.winningDigit}-${game.losingDigit}`;
+      const wrongColIdx = digitToGridIndex(game.losingDigit, columnDigits);
+      const wrongRowIdx = digitToGridIndex(game.winningDigit, rowDigits);
+      const wrongKey = `${wrongRowIdx}-${wrongColIdx}`;
       map.set(wrongKey, (map.get(wrongKey) || 0) + game.wrongWayPayout);
     }
   }
@@ -43,23 +51,25 @@ function getHeatColor(amount: number, max: number): string {
   return 'bg-green-500/30';
 }
 
-export default function SquareGrid({ grid, games, highlightSquare }: SquareGridProps) {
+export default function SquareGrid({ grid, games, columnDigits, rowDigits, highlightSquare }: SquareGridProps) {
   const [selectedSquare, setSelectedSquare] = useState<{ row: number; col: number } | null>(null);
   const [showHeatMap, setShowHeatMap] = useState(true);
 
-  const winningsMap = useMemo(() => getWinningsPerSquare(games), [games]);
+  const winningsMap = useMemo(() => getWinningsPerSquare(games, columnDigits, rowDigits), [games, columnDigits, rowDigits]);
   const maxWinnings = useMemo(() => Math.max(...winningsMap.values(), 1), [winningsMap]);
   const digitFreq = useMemo(() => getDigitFrequency(games), [games]);
 
   const selectedWins = useMemo(() => {
     if (!selectedSquare) return [];
+    const selectedColDigit = columnDigits[selectedSquare.col];
+    const selectedRowDigit = rowDigits[selectedSquare.row];
     return games.filter(g => {
       if (g.status !== 'final') return false;
-      const isRightWay = g.losingDigit === selectedSquare.row && g.winningDigit === selectedSquare.col;
-      const isWrongWay = g.round === 2 && g.winningDigit === selectedSquare.row && g.losingDigit === selectedSquare.col;
+      const isRightWay = g.losingDigit === selectedRowDigit && g.winningDigit === selectedColDigit;
+      const isWrongWay = g.round === 2 && g.winningDigit === selectedRowDigit && g.losingDigit === selectedColDigit;
       return isRightWay || isWrongWay;
     });
-  }, [selectedSquare, games]);
+  }, [selectedSquare, games, columnDigits, rowDigits]);
 
   const totalGames = games.filter(g => g.status === 'final' && g.round !== 68).length;
 
@@ -83,11 +93,11 @@ export default function SquareGrid({ grid, games, highlightSquare }: SquareGridP
       {/* Digit frequency bar */}
       {totalGames > 0 && (
         <div className="grid grid-cols-10 gap-1 text-center">
-          {digitFreq.winning.map((count, i) => (
+          {columnDigits.map((digit, i) => (
             <div key={i} className="text-[10px] text-gray-500">
               <div
                 className="bg-orange-500/30 rounded-sm mx-auto mb-0.5"
-                style={{ height: `${Math.max((count / Math.max(totalGames, 1)) * 30, 2)}px`, width: '100%' }}
+                style={{ height: `${Math.max((digitFreq.winning[digit] / Math.max(totalGames, 1)) * 30, 2)}px`, width: '100%' }}
               />
             </div>
           ))}
@@ -109,12 +119,12 @@ export default function SquareGrid({ grid, games, highlightSquare }: SquareGridP
             <div className="p-1" />
 
             {/* Column headers */}
-            {Array.from({ length: 10 }, (_, i) => (
+            {columnDigits.map((digit, i) => (
               <div
                 key={`col-${i}`}
                 className="flex items-center justify-center p-2 text-sm font-black text-orange-400 bg-gray-800/50 first:rounded-tl-lg last:rounded-tr-lg"
               >
-                {i}
+                {digit}
               </div>
             ))}
 
@@ -127,7 +137,7 @@ export default function SquareGrid({ grid, games, highlightSquare }: SquareGridP
                   className="flex items-center justify-center p-2 text-sm font-black text-orange-400 bg-gray-800/50"
                 >
                   <div className="flex flex-col items-center">
-                    <span>{row}</span>
+                    <span>{rowDigits[row]}</span>
                     {row === 0 && (
                       <span className="text-[8px] font-normal text-gray-500 -rotate-90 absolute -left-8 hidden lg:block">
                         LOSER
@@ -201,7 +211,7 @@ export default function SquareGrid({ grid, games, highlightSquare }: SquareGridP
             </button>
           </div>
           <p className="text-xs text-gray-400 mb-2">
-            Winner digit: {selectedSquare.col} / Loser digit: {selectedSquare.row}
+            Winner digit: {columnDigits[selectedSquare.col]} / Loser digit: {rowDigits[selectedSquare.row]}
           </p>
 
           {selectedWins.length === 0 ? (
@@ -215,7 +225,7 @@ export default function SquareGrid({ grid, games, highlightSquare }: SquareGridP
                     {g.losingTeam} {g.topTeamScore != null ? `${Math.min(g.topTeamScore, g.bottomTeamScore!)}` : ''}
                   </span>
                   <span className="text-green-400 font-bold">
-                    ${g.losingDigit === selectedSquare.row && g.winningDigit === selectedSquare.col ? g.payout : g.wrongWayPayout}
+                    ${g.losingDigit === rowDigits[selectedSquare.row] && g.winningDigit === columnDigits[selectedSquare.col] ? g.payout : g.wrongWayPayout}
                   </span>
                 </div>
               ))}

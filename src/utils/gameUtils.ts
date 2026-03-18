@@ -5,7 +5,20 @@ export function getLastDigit(score: number): number {
   return score % 10;
 }
 
-export function calculateGameResult(game: Game, grid: string[][]): Partial<Game> {
+/**
+ * Convert a score digit (0-9) to the grid index using the digit order array.
+ * digitOrder[gridIndex] = digit, so we find the index where the digit lives.
+ */
+export function digitToGridIndex(digit: number, digitOrder: number[]): number {
+  return digitOrder.indexOf(digit);
+}
+
+export function calculateGameResult(
+  game: Game,
+  grid: string[][],
+  columnDigits: number[],
+  rowDigits: number[],
+): Partial<Game> {
   if (game.topTeamScore == null || game.bottomTeamScore == null) return {};
   if (game.round === 68) return {}; // play-in games excluded
 
@@ -20,7 +33,11 @@ export function calculateGameResult(game: Game, grid: string[][]): Partial<Game>
   const winningDigit = getLastDigit(winningScore);
   const losingDigit = getLastDigit(losingScore);
 
-  const squareWinner = grid[losingDigit]?.[winningDigit] || 'Unassigned';
+  // Convert raw digits to grid indices using the digit order
+  const colIndex = digitToGridIndex(winningDigit, columnDigits);
+  const rowIndex = digitToGridIndex(losingDigit, rowDigits);
+
+  const squareWinner = grid[rowIndex]?.[colIndex] || 'Unassigned';
 
   let payout = getPayoutForRound(game.round);
   let wrongWaySquareWinner: string | undefined;
@@ -28,7 +45,9 @@ export function calculateGameResult(game: Game, grid: string[][]): Partial<Game>
 
   if (game.round === 2) {
     payout = CHAMPIONSHIP_RIGHT_WAY;
-    wrongWaySquareWinner = grid[winningDigit]?.[losingDigit] || 'Unassigned';
+    const wrongColIndex = digitToGridIndex(losingDigit, columnDigits);
+    const wrongRowIndex = digitToGridIndex(winningDigit, rowDigits);
+    wrongWaySquareWinner = grid[wrongRowIndex]?.[wrongColIndex] || 'Unassigned';
     wrongWayPayout = CHAMPIONSHIP_WRONG_WAY;
   }
 

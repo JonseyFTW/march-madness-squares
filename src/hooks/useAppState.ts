@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppState, Game, RoundNumber } from '../types';
-import { DEFAULT_GRID } from '../data/constants';
+import { DEFAULT_GRID, DEFAULT_COLUMN_DIGITS, DEFAULT_ROW_DIGITS } from '../data/constants';
 import { generateDefaultGames, calculateGameResult } from '../utils/gameUtils';
 
 const STORAGE_KEY = 'march-madness-squares-2026';
@@ -11,7 +11,12 @@ function loadState(): AppState {
     if (saved) {
       const parsed = JSON.parse(saved);
       // Always use the latest grid from code so updates are reflected
-      return { ...parsed, grid: DEFAULT_GRID };
+      return {
+        ...parsed,
+        grid: DEFAULT_GRID,
+        columnDigits: parsed.columnDigits ?? DEFAULT_COLUMN_DIGITS,
+        rowDigits: parsed.rowDigits ?? DEFAULT_ROW_DIGITS,
+      };
     }
   } catch (e) {
     console.error('Failed to load state:', e);
@@ -23,6 +28,8 @@ function loadState(): AppState {
     adminPassword: 'madness2026',
     tournamentYear: 2026,
     lastUpdated: new Date().toISOString(),
+    columnDigits: DEFAULT_COLUMN_DIGITS,
+    rowDigits: DEFAULT_ROW_DIGITS,
   };
 }
 
@@ -46,6 +53,10 @@ export function useAppState() {
     setState(prev => ({ ...prev, grid, lastUpdated: new Date().toISOString() }));
   }, []);
 
+  const updateDigitOrder = useCallback((columnDigits: number[], rowDigits: number[]) => {
+    setState(prev => ({ ...prev, columnDigits, rowDigits, lastUpdated: new Date().toISOString() }));
+  }, []);
+
   const updateGame = useCallback((gameId: string, updates: Partial<Game>) => {
     setState(prev => {
       const games = prev.games.map(g => {
@@ -54,7 +65,7 @@ export function useAppState() {
 
         // Auto-calculate results if scores are present
         if (updated.topTeamScore != null && updated.bottomTeamScore != null && updated.topTeam && updated.bottomTeam) {
-          const calculated = calculateGameResult(updated, prev.grid);
+          const calculated = calculateGameResult(updated, prev.grid, prev.columnDigits, prev.rowDigits);
           return { ...updated, ...calculated };
         }
         return updated;
@@ -83,7 +94,7 @@ export function useAppState() {
     setState(prev => {
       const games = prev.games.map(g => {
         if (g.topTeamScore != null && g.bottomTeamScore != null && g.topTeam && g.bottomTeam) {
-          const calculated = calculateGameResult(g, prev.grid);
+          const calculated = calculateGameResult(g, prev.grid, prev.columnDigits, prev.rowDigits);
           return { ...g, ...calculated };
         }
         return g;
@@ -118,6 +129,7 @@ export function useAppState() {
     state,
     isAdmin,
     updateGrid,
+    updateDigitOrder,
     updateGame,
     addGame,
     removeGame,

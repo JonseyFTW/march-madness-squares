@@ -43,9 +43,15 @@ export const DEFAULT_GRID: string[][] = [
   ['Morgan Carroll', 'Ty McFarland', 'Scott Brizell', 'Scott Askelson', 'Ryan Millett', 'Skyler Brady', 'Jason Simonton', 'Colton Moore', 'Stetson Christensen', 'Deklon Brady'],
   ['Rene Anderson', 'Morgan Carroll', 'Jason Simonton', 'Nick Capouch', 'Skyler Brady', 'Laura Brizell', 'Cole Jackson', 'Ryan Kearney', 'Chad Jones', 'Stetson Christensen'],
   ['Braylon Brady', 'Jason Simonton', 'Collin Strawn', 'Deklon Brady', 'Spenser Todd', 'Morgan Carroll', 'Camden Jackson', 'Gunnar Gregory', 'Tommy Thacker', 'Karen McIlvain'],
-  ['Tommy Thacker', 'Jaycek Jackson', 'Skyler Brady', 'Ty McFarland', 'Nikki Jackson', 'Tommy Thacker', 'Morgan Carroll', 'Scott Brizell', 'Tuff Brady', ''],
+  ['Tommy Thacker', 'Jaycek Jackson', 'Skyler Brady', 'Ty McFarland', 'Nikki Jackson', 'Tommy Thacker', 'Morgan Carroll', 'Scott Brizell', 'Tuff Brady', 'Jeremy Dearborn'],
   ['Shelby Moore', 'Skyler Brady', 'Braylon Brady', 'Tommy Thacker', 'Rene Anderson', 'Stetson Christensen', 'Sarah McFarland', 'Stetson Christensen', 'Morgan Carroll', 'Eric Moore'],
 ];
+
+// Digit order for the grid axes (randomized at pool start)
+// columnDigits[i] = the winner's digit label for grid column i
+// rowDigits[i] = the loser's digit label for grid row i
+export const DEFAULT_COLUMN_DIGITS = [3, 0, 1, 8, 9, 4, 5, 6, 7, 2];
+export const DEFAULT_ROW_DIGITS = [7, 5, 3, 4, 0, 6, 9, 2, 1, 8];
 
 export const REGIONS = ['East', 'West', 'South', 'Midwest'] as const;
 

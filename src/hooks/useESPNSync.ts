@@ -9,10 +9,12 @@ const POLL_INTERVAL_IDLE = 5 * 60_000; // 5 minutes when no live games
 interface UseESPNSyncOptions {
   games: Game[];
   grid: string[][];
+  columnDigits: number[];
+  rowDigits: number[];
   onSyncGames: (games: Game[]) => void;
 }
 
-export function useESPNSync({ games, grid, onSyncGames }: UseESPNSyncOptions) {
+export function useESPNSync({ games, grid, columnDigits, rowDigits, onSyncGames }: UseESPNSyncOptions) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -22,10 +24,14 @@ export function useESPNSync({ games, grid, onSyncGames }: UseESPNSyncOptions) {
   // Use refs to avoid sync callback depending on games/grid (which change on every sync)
   const gamesRef = useRef(games);
   const gridRef = useRef(grid);
+  const columnDigitsRef = useRef(columnDigits);
+  const rowDigitsRef = useRef(rowDigits);
   const onSyncRef = useRef(onSyncGames);
 
   gamesRef.current = games;
   gridRef.current = grid;
+  columnDigitsRef.current = columnDigits;
+  rowDigitsRef.current = rowDigits;
   onSyncRef.current = onSyncGames;
 
   const sync = useCallback(async () => {
@@ -51,7 +57,7 @@ export function useESPNSync({ games, grid, onSyncGames }: UseESPNSyncOptions) {
       // Recalculate results for final games
       merged = merged.map(g => {
         if (g.topTeamScore != null && g.bottomTeamScore != null && g.topTeam && g.bottomTeam && g.status === 'final') {
-          const calculated = calculateGameResult(g, gridRef.current);
+          const calculated = calculateGameResult(g, gridRef.current, columnDigitsRef.current, rowDigitsRef.current);
           return { ...g, ...calculated };
         }
         return g;

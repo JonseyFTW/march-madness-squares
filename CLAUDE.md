@@ -92,5 +92,5 @@ src/
 - Git credentials use `gh auth` via Homebrew-installed GitHub CLI at `/usr/local/bin/gh`
 - Old `/tmp/gh_install/...` path may appear in warnings but doesn't affect pushes
 
-## Square 90
-Square 90 (row 8, col 9) is intentionally blank — no owner assigned.
+## Score Digit Order
+The grid's row and column headers use randomized digit orders (not sequential 0-9). These are stored as `columnDigits` (winner) and `rowDigits` (loser) in `AppState` and `DEFAULT_COLUMN_DIGITS`/`DEFAULT_ROW_DIGITS` in constants.ts. The `calculateGameResult` function converts raw score digits to grid indices using these arrays.
