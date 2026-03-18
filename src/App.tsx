@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { Analytics } from '@vercel/analytics/react';
 import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
 import SquareGrid from './components/board/SquareGrid';
@@ -151,6 +152,7 @@ function App() {
           </p>
         </footer>
       </main>
+      <Analytics />
     </div>
   );
 }
