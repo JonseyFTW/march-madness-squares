@@ -24,6 +24,8 @@ export interface Game {
   scheduledDate?: string;
   espnId?: string;
   statusDetail?: string;
+  displayClock?: string;
+  period?: number;
   winningTeam?: string;
   losingTeam?: string;
   winningDigit?: number;
