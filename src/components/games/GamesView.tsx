@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Game, RoundNumber } from '../../types';
 import { ROUNDS, getRoundName, CHAMPIONSHIP_RIGHT_WAY, CHAMPIONSHIP_WRONG_WAY } from '../../data/constants';
+import { getLastDigit, digitToGridIndex } from '../../utils/gameUtils';
 import { ChevronDown, ChevronRight, Edit3, Check, X, RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react';
 
 interface ESPNSyncInfo {
@@ -14,6 +15,8 @@ interface ESPNSyncInfo {
 interface GamesViewProps {
   games: Game[];
   grid: string[][];
+  columnDigits: number[];
+  rowDigits: number[];
   isAdmin: boolean;
   onUpdateGame: (gameId: string, updates: Partial<Game>) => void;
   onAddGame: (game: Game) => void;
@@ -21,7 +24,7 @@ interface GamesViewProps {
   espnSync?: ESPNSyncInfo;
 }
 
-export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGame, onRemoveGame, espnSync }: GamesViewProps) {
+export default function GamesView({ games, grid, columnDigits, rowDigits, isAdmin, onUpdateGame, onAddGame, onRemoveGame, espnSync }: GamesViewProps) {
   const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set([68, 64, 32, 16, 8, 4, 2]));
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Game>>({});
@@ -213,6 +216,9 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
                               <GameRow
                                 key={game.id}
                                 game={game}
+                                grid={grid}
+                                columnDigits={columnDigits}
+                                rowDigits={rowDigits}
                                 isEditing={editingGame === game.id}
                                 editForm={editForm}
                                 setEditForm={setEditForm}
@@ -232,6 +238,9 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
                           <GameRow
                             key={game.id}
                             game={game}
+                            grid={grid}
+                            columnDigits={columnDigits}
+                            rowDigits={rowDigits}
                             isEditing={editingGame === game.id}
                             editForm={editForm}
                             setEditForm={setEditForm}
@@ -267,6 +276,9 @@ export default function GamesView({ games, grid, isAdmin, onUpdateGame, onAddGam
 
 function GameRow({
   game,
+  grid,
+  columnDigits,
+  rowDigits,
   isEditing,
   editForm,
   setEditForm,
@@ -277,6 +289,9 @@ function GameRow({
   onRemove,
 }: {
   game: Game;
+  grid: string[][];
+  columnDigits: number[];
+  rowDigits: number[];
   isEditing: boolean;
   editForm: Partial<Game>;
   setEditForm: (f: Partial<Game>) => void;
@@ -447,10 +462,54 @@ function GameRow({
         </div>
       )}
 
-      {/* Live score detail */}
-      {game.status === 'in_progress' && game.statusDetail && (
+      {/* Live score detail + projected square winner */}
+      {game.status === 'in_progress' && (
         <div className="text-right shrink-0">
-          <span className="text-[10px] font-semibold text-red-400">{game.statusDetail}</span>
+          {game.statusDetail && (
+            <span className="text-[10px] font-semibold text-red-400">{game.statusDetail}</span>
+          )}
+          {(() => {
+            // Show projected square winner when under 2 minutes remain in 2nd half (period >= 2)
+            if (
+              game.topTeamScore != null &&
+              game.bottomTeamScore != null &&
+              game.topTeamScore !== game.bottomTeamScore &&
+              game.period != null &&
+              game.period >= 2 &&
+              game.displayClock &&
+              game.round !== 68
+            ) {
+              // Parse clock - format is "M:SS" or "SS.S"
+              const clockStr = game.displayClock;
+              let totalSeconds = Infinity;
+              if (clockStr.includes(':')) {
+                const [min, sec] = clockStr.split(':').map(Number);
+                totalSeconds = min * 60 + sec;
+              } else {
+                totalSeconds = parseFloat(clockStr);
+              }
+              if (totalSeconds <= 120) {
+                const topScore = game.topTeamScore;
+                const bottomScore = game.bottomTeamScore;
+                const winningScore = Math.max(topScore, bottomScore);
+                const losingScore = Math.min(topScore, bottomScore);
+                const winningDigit = getLastDigit(winningScore);
+                const losingDigit = getLastDigit(losingScore);
+                const colIndex = digitToGridIndex(winningDigit, columnDigits);
+                const rowIndex = digitToGridIndex(losingDigit, rowDigits);
+                const projectedWinner = grid[rowIndex]?.[colIndex] || 'Unassigned';
+                return (
+                  <div className="mt-0.5">
+                    <div className="text-[10px] text-gray-400">
+                      ({winningDigit}, {losingDigit})
+                    </div>
+                    <div className="text-xs font-bold text-orange-400">{projectedWinner}</div>
+                  </div>
+                );
+              }
+            }
+            return null;
+          })()}
         </div>
       )}
 

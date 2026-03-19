@@ -114,6 +114,8 @@ function App() {
           <GamesView
             games={state.games}
             grid={state.grid}
+            columnDigits={state.columnDigits}
+            rowDigits={state.rowDigits}
             isAdmin={isAdmin}
             onUpdateGame={handleUpdateGame}
             onAddGame={addGame}
