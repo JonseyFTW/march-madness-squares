@@ -42,7 +42,7 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
   }, [finalGames]);
 
   const hotDigit = digitStats.winning.indexOf(Math.max(...digitStats.winning));
-  const coldDigit = digitStats.winning.indexOf(Math.min(...digitStats.winning.filter((_, i) => digitStats.winning.some(v => v > 0) ? true : true)));
+  const hotDigitLosing = digitStats.losing.indexOf(Math.max(...digitStats.losing));
 
   // Round progress
   const roundInfo = ROUNDS.find(r => r.round === currentRound);
@@ -226,27 +226,52 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
 
       {/* Hot/Cold Numbers */}
       {totalGamesPlayed > 0 && (
-        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
-          <h3 className="text-sm font-bold text-white mb-3">Digit Frequency (Winning Team)</h3>
-          <div className="grid grid-cols-10 gap-2">
-            {digitStats.winning.map((count, digit) => {
-              const maxCount = Math.max(...digitStats.winning, 1);
-              const pct = (count / maxCount) * 100;
-              return (
-                <div key={digit} className="flex flex-col items-center gap-1">
-                  <div className="w-full h-16 bg-gray-700/50 rounded relative overflow-hidden">
-                    <div
-                      className={`absolute bottom-0 w-full rounded transition-all duration-500 ${
-                        digit === hotDigit ? 'bg-orange-500' : 'bg-blue-500/60'
-                      }`}
-                      style={{ height: `${pct}%` }}
-                    />
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+            <h3 className="text-sm font-bold text-white mb-3">Digit Frequency (Winning Team)</h3>
+            <div className="grid grid-cols-10 gap-2">
+              {digitStats.winning.map((count, digit) => {
+                const maxCount = Math.max(...digitStats.winning, 1);
+                const pct = (count / maxCount) * 100;
+                return (
+                  <div key={digit} className="flex flex-col items-center gap-1">
+                    <div className="w-full h-16 bg-gray-700/50 rounded relative overflow-hidden">
+                      <div
+                        className={`absolute bottom-0 w-full rounded transition-all duration-500 ${
+                          digit === hotDigit ? 'bg-orange-500' : 'bg-blue-500/60'
+                        }`}
+                        style={{ height: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-gray-300">{digit}</span>
+                    <span className="text-[10px] text-gray-500">{count}</span>
                   </div>
-                  <span className="text-xs font-bold text-gray-300">{digit}</span>
-                  <span className="text-[10px] text-gray-500">{count}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </div>
+          <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+            <h3 className="text-sm font-bold text-white mb-3">Digit Frequency (Losing Team)</h3>
+            <div className="grid grid-cols-10 gap-2">
+              {digitStats.losing.map((count, digit) => {
+                const maxCount = Math.max(...digitStats.losing, 1);
+                const pct = (count / maxCount) * 100;
+                return (
+                  <div key={digit} className="flex flex-col items-center gap-1">
+                    <div className="w-full h-16 bg-gray-700/50 rounded relative overflow-hidden">
+                      <div
+                        className={`absolute bottom-0 w-full rounded transition-all duration-500 ${
+                          digit === hotDigitLosing ? 'bg-orange-500' : 'bg-red-500/60'
+                        }`}
+                        style={{ height: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-gray-300">{digit}</span>
+                    <span className="text-[10px] text-gray-500">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
