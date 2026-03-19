@@ -103,7 +103,7 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
           </div>
           <div className="space-y-2">
             {inProgressGames.map(g => (
-              <div key={g.id} className="flex items-center justify-between text-sm bg-gray-800/50 rounded-lg px-3 py-2">
+              <div key={g.id} className="flex items-center justify-between gap-4 text-sm bg-gray-800/50 rounded-lg px-3 py-2">
                 <span className="text-white font-semibold">
                   {g.topTeam || 'TBD'} vs {g.bottomTeam || 'TBD'}
                 </span>
