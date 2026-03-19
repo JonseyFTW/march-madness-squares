@@ -3,7 +3,7 @@ import { Game } from '../../types';
 import { TOTAL_POT, ROUNDS, getRoundName } from '../../data/constants';
 import { getTotalPaidOut, getCurrentRound, getCompletedGamesCount, digitToGridIndex, getLastDigit } from '../../utils/gameUtils';
 import { calculateParticipants } from '../../utils/participantUtils';
-import { DollarSign, TrendingUp, Trophy, Zap, Clock, Target } from 'lucide-react';
+import { DollarSign, TrendingUp, Trophy, Zap, Clock, Target, Frown } from 'lucide-react';
 
 interface DashboardProps {
   grid: string[][];
@@ -43,6 +43,61 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
 
   const hotDigit = digitStats.winning.indexOf(Math.max(...digitStats.winning));
   const hotDigitLosing = digitStats.losing.indexOf(Math.max(...digitStats.losing));
+
+  // Near misses - people who would have won if not for the last basket
+  const nearMissData = useMemo(() => {
+    const misses: { person: string; game: Game; payout: number; actualWinner: string }[] = [];
+    for (const g of finalGames) {
+      if (g.topTeamScore == null || g.bottomTeamScore == null || !g.squareWinner) continue;
+      const winScore = Math.max(g.topTeamScore, g.bottomTeamScore);
+      const loseScore = Math.min(g.topTeamScore, g.bottomTeamScore);
+      const payout = g.payout || 0;
+
+      // Check alternate scores: last basket could be 1, 2, or 3 pts on either team
+      const alternates: [number, number][] = [];
+      // Winning team scored last (remove 1/2/3 from winner)
+      for (const pts of [1, 2, 3]) {
+        const altWin = winScore - pts;
+        if (altWin >= 0 && altWin > loseScore) alternates.push([altWin, loseScore]);
+        // If removing points ties or flips the lead, use flipped winner/loser
+        if (altWin >= 0 && altWin < loseScore) alternates.push([loseScore, altWin]);
+      }
+      // Losing team scored last (remove 1/2/3 from loser)
+      for (const pts of [1, 2, 3]) {
+        const altLose = loseScore - pts;
+        if (altLose >= 0) alternates.push([winScore, altLose]);
+      }
+
+      for (const [altWinScore, altLoseScore] of alternates) {
+        const altWinDigit = getLastDigit(altWinScore);
+        const altLoseDigit = getLastDigit(altLoseScore);
+        const colIdx = digitToGridIndex(altWinDigit, columnDigits);
+        const rowIdx = digitToGridIndex(altLoseDigit, rowDigits);
+        const altOwner = grid[rowIdx]?.[colIdx] || 'Unassigned';
+        if (altOwner !== g.squareWinner && altOwner !== 'Unassigned' && altOwner !== '') {
+          // Deduplicate: only add this person once per game
+          if (!misses.some(m => m.person === altOwner && m.game.id === g.id)) {
+            misses.push({ person: altOwner, game: g, payout, actualWinner: g.squareWinner });
+          }
+        }
+      }
+    }
+
+    // Aggregate by person
+    const byPerson = new Map<string, { count: number; missedPayout: number; games: typeof misses }>();
+    for (const m of misses) {
+      const existing = byPerson.get(m.person) || { count: 0, missedPayout: 0, games: [] };
+      existing.count++;
+      existing.missedPayout += m.payout;
+      existing.games.push(m);
+      byPerson.set(m.person, existing);
+    }
+
+    return Array.from(byPerson.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.count - a.count || b.missedPayout - a.missedPayout)
+      .slice(0, 5);
+  }, [finalGames, grid, columnDigits, rowDigits]);
 
   // Round progress
   const roundInfo = ROUNDS.find(r => r.round === currentRound);
@@ -265,6 +320,49 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
           )}
         </div>
       </div>
+
+      {/* Near Misses / Unluckiest Losers */}
+      {nearMissData.length > 0 && (
+        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+            <Frown size={16} className="text-red-400" />
+            Unluckiest Losers
+            <span className="text-[10px] text-gray-500 font-normal ml-1">Would have won if not for the last basket</span>
+          </h3>
+          <div className="space-y-2">
+            {nearMissData.map((p, i) => (
+              <div key={p.name} className="bg-gray-700/30 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-black ${
+                      i === 0 ? 'bg-red-500 text-white' : 'bg-gray-700 text-gray-300'
+                    }`}>
+                      {i + 1}
+                    </span>
+                    <div>
+                      <div className="text-sm text-white font-semibold">{p.name}</div>
+                      <div className="text-xs text-gray-400">
+                        {p.count} near miss{p.count !== 1 ? 'es' : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-red-400 font-black text-sm">-${p.missedPayout}</span>
+                </div>
+                <div className="mt-1.5 space-y-1">
+                  {p.games.map(m => (
+                    <div key={m.game.id} className="text-[10px] text-gray-500 flex items-center justify-between">
+                      <span>
+                        {m.game.winningTeam} {Math.max(m.game.topTeamScore!, m.game.bottomTeamScore!)} - {m.game.losingTeam} {Math.min(m.game.topTeamScore!, m.game.bottomTeamScore!)}
+                      </span>
+                      <span>won by <span className="text-orange-400">{m.actualWinner}</span></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Hot/Cold Numbers */}
       {totalGamesPlayed > 0 && (
