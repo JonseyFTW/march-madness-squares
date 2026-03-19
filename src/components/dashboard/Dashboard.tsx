@@ -107,14 +107,14 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
                 <span className="text-white font-semibold">
                   {g.topTeam || 'TBD'} vs {g.bottomTeam || 'TBD'}
                 </span>
-                <div className="text-right">
+                <div className="text-right whitespace-nowrap">
                   {(g.period || g.displayClock) && (
                     <div className="text-xs text-red-400 font-medium">
-                      {g.statusDetail === 'Halftime' ? 'Halftime' : (
-                        <>
-                          {g.period && (g.period <= 2 ? `${g.period === 1 ? '1st' : '2nd'} Half` : `OT${g.period > 3 ? g.period - 2 : ''}`)}
-                          {g.displayClock && g.statusDetail !== 'Halftime' && ` · ${g.displayClock}`}
-                        </>
+                      {g.statusDetail === 'Halftime' ? 'HT' : (
+                        [
+                          g.period && (g.period <= 2 ? `${g.period}H` : `OT${g.period > 3 ? g.period - 2 : ''}`),
+                          g.displayClock,
+                        ].filter(Boolean).join(' - ')
                       )}
                     </div>
                   )}
