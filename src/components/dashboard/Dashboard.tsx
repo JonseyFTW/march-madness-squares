@@ -107,9 +107,21 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
                 <span className="text-white font-semibold">
                   {g.topTeam || 'TBD'} vs {g.bottomTeam || 'TBD'}
                 </span>
-                <span className="text-gray-400">
-                  {g.topTeamScore ?? '—'} - {g.bottomTeamScore ?? '—'}
-                </span>
+                <div className="text-right">
+                  {(g.period || g.displayClock) && (
+                    <div className="text-xs text-red-400 font-medium">
+                      {g.statusDetail === 'Halftime' ? 'Halftime' : (
+                        <>
+                          {g.period && (g.period <= 2 ? `${g.period === 1 ? '1st' : '2nd'} Half` : `OT${g.period > 3 ? g.period - 2 : ''}`)}
+                          {g.displayClock && g.statusDetail !== 'Halftime' && ` · ${g.displayClock}`}
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <span className="text-gray-400">
+                    {g.topTeamScore ?? '—'} - {g.bottomTeamScore ?? '—'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>

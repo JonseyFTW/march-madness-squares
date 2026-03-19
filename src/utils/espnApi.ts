@@ -73,6 +73,8 @@ export interface ESPNGame {
   roundName?: string;
   round: RoundNumber;
   scheduledDate: string;
+  displayClock?: string;
+  period?: number;
 }
 
 function parseRoundFromHeadline(headline: string): RoundNumber {
@@ -136,6 +138,9 @@ function parseESPNEvent(event: ESPNEvent): ESPNGame {
   const topScore = topTeam?.score ? parseInt(topTeam.score) : null;
   const bottomScore = bottomTeam?.score ? parseInt(bottomTeam.score) : null;
 
+  const displayClock = comp.status?.displayClock || event.status?.displayClock;
+  const period = comp.status?.period || event.status?.period;
+
   return {
     espnId: event.id,
     topTeam: topTeam?.team?.displayName || 'TBD',
@@ -150,6 +155,8 @@ function parseESPNEvent(event: ESPNEvent): ESPNGame {
     roundName: headline,
     round,
     scheduledDate: event.date,
+    displayClock,
+    period,
   };
 }
 
@@ -306,5 +313,7 @@ function updateGameFromESPN(existing: Game, espn: ESPNGame): Game {
     scheduledDate: espn.scheduledDate,
     espnId: espn.espnId,
     statusDetail: espn.statusDetail,
+    displayClock: espn.displayClock,
+    period: espn.period,
   } as Game;
 }
