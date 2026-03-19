@@ -21,7 +21,7 @@ const TOURNAMENT_DATES = [
 ];
 
 interface ESPNCompetitor {
-  team: { displayName: string; abbreviation: string };
+  team: { displayName: string; abbreviation: string; shortDisplayName?: string; location?: string };
   score: string;
   curatedRank?: { current: number };
   order: number;
@@ -63,6 +63,8 @@ export interface ESPNGame {
   espnId: string;
   topTeam: string;
   bottomTeam: string;
+  topTeamShort?: string;
+  bottomTeamShort?: string;
   topTeamSeed?: number;
   bottomTeamSeed?: number;
   topTeamScore: number | null;
@@ -145,6 +147,8 @@ function parseESPNEvent(event: ESPNEvent): ESPNGame {
     espnId: event.id,
     topTeam: topTeam?.team?.displayName || 'TBD',
     bottomTeam: bottomTeam?.team?.displayName || 'TBD',
+    topTeamShort: topTeam?.team?.shortDisplayName || topTeam?.team?.location || undefined,
+    bottomTeamShort: bottomTeam?.team?.shortDisplayName || bottomTeam?.team?.location || undefined,
     topTeamSeed: topTeam?.curatedRank?.current,
     bottomTeamSeed: bottomTeam?.curatedRank?.current,
     topTeamScore: status === 'upcoming' ? null : (isNaN(topScore!) ? null : topScore),
@@ -304,6 +308,8 @@ function updateGameFromESPN(existing: Game, espn: ESPNGame): Game {
     ...existing,
     topTeam: espn.topTeam,
     bottomTeam: espn.bottomTeam,
+    topTeamShort: espn.topTeamShort,
+    bottomTeamShort: espn.bottomTeamShort,
     topTeamSeed: espn.topTeamSeed,
     bottomTeamSeed: espn.bottomTeamSeed,
     topTeamScore: espn.topTeamScore ?? existing.topTeamScore,

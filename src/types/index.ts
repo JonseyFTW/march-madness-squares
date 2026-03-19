@@ -16,6 +16,8 @@ export interface Game {
   region?: string;
   topTeam: string;
   bottomTeam: string;
+  topTeamShort?: string;
+  bottomTeamShort?: string;
   topTeamSeed?: number;
   bottomTeamSeed?: number;
   topTeamScore?: number;
