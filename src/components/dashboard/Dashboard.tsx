@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Game } from '../../types';
 import { TOTAL_POT, ROUNDS, getRoundName } from '../../data/constants';
-import { getTotalPaidOut, getCurrentRound, getCompletedGamesCount, digitToGridIndex } from '../../utils/gameUtils';
+import { getTotalPaidOut, getCurrentRound, getCompletedGamesCount, digitToGridIndex, getLastDigit } from '../../utils/gameUtils';
 import { calculateParticipants } from '../../utils/participantUtils';
 import { DollarSign, TrendingUp, Trophy, Zap, Clock, Target } from 'lucide-react';
 
@@ -102,28 +102,70 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
             <span className="text-sm font-bold text-red-400">LIVE GAMES</span>
           </div>
           <div className="space-y-2">
-            {inProgressGames.map(g => (
-              <div key={g.id} className="flex items-center justify-between gap-4 text-sm bg-gray-800/50 rounded-lg px-3 py-2">
-                <span className="text-white font-semibold">
-                  {g.topTeam || 'TBD'} vs {g.bottomTeam || 'TBD'}
-                </span>
-                <div className="text-right whitespace-nowrap">
-                  {(g.period || g.displayClock) && (
-                    <div className="text-xs text-red-400 font-medium">
-                      {g.statusDetail === 'Halftime' ? 'HT' : (
-                        [
-                          g.period && (g.period <= 2 ? `${g.period}H` : `OT${g.period > 3 ? g.period - 2 : ''}`),
-                          g.displayClock,
-                        ].filter(Boolean).join(' - ')
-                      )}
-                    </div>
-                  )}
-                  <span className="text-gray-400">
-                    {g.topTeamScore ?? '—'} - {g.bottomTeamScore ?? '—'}
-                  </span>
+            {inProgressGames.map(g => {
+              // Check if under 2 minutes in 2nd half or OT for projected winner
+              let projectedWinner: string | null = null;
+              let winDigit: number | undefined;
+              let loseDigit: number | undefined;
+              if (
+                g.topTeamScore != null &&
+                g.bottomTeamScore != null &&
+                g.topTeamScore !== g.bottomTeamScore &&
+                g.period != null &&
+                g.period >= 2 &&
+                g.displayClock &&
+                g.round !== 68
+              ) {
+                const clockStr = g.displayClock;
+                let totalSeconds = Infinity;
+                if (clockStr.includes(':')) {
+                  const [min, sec] = clockStr.split(':').map(Number);
+                  totalSeconds = min * 60 + sec;
+                } else {
+                  totalSeconds = parseFloat(clockStr);
+                }
+                if (totalSeconds <= 120) {
+                  const winningScore = Math.max(g.topTeamScore, g.bottomTeamScore);
+                  const losingScore = Math.min(g.topTeamScore, g.bottomTeamScore);
+                  winDigit = getLastDigit(winningScore);
+                  loseDigit = getLastDigit(losingScore);
+                  const colIndex = digitToGridIndex(winDigit, columnDigits);
+                  const rowIndex = digitToGridIndex(loseDigit, rowDigits);
+                  projectedWinner = grid[rowIndex]?.[colIndex] || 'Unassigned';
+                }
+              }
+              return (
+                <div key={g.id} className="flex items-center justify-between gap-4 text-sm bg-gray-800/50 rounded-lg px-3 py-2">
+                  <div className="min-w-0">
+                    <span className="text-white font-semibold">
+                      {g.topTeam || 'TBD'} vs {g.bottomTeam || 'TBD'}
+                    </span>
+                    {projectedWinner && (
+                      <div className="text-xs mt-0.5">
+                        <span className="text-gray-400">({winDigit}, {loseDigit})</span>
+                        {' → '}
+                        <span className="text-orange-400 font-bold">{projectedWinner}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right whitespace-nowrap shrink-0">
+                    {(g.period || g.displayClock) && (
+                      <div className="text-xs text-red-400 font-medium">
+                        {g.statusDetail === 'Halftime' ? 'HT' : (
+                          [
+                            g.period && (g.period <= 2 ? `${g.period}H` : `OT${g.period > 3 ? g.period - 2 : ''}`),
+                            g.displayClock,
+                          ].filter(Boolean).join(' - ')
+                        )}
+                      </div>
+                    )}
+                    <span className="text-gray-400">
+                      {g.topTeamScore ?? '—'} - {g.bottomTeamScore ?? '—'}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
