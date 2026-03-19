@@ -128,9 +128,9 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-2 gap-4 min-w-0">
         {/* Recent Winners */}
-        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Trophy size={16} className="text-orange-400" />
@@ -180,7 +180,7 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
         </div>
 
         {/* Top Earners */}
-        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+        <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <TrendingUp size={16} className="text-green-400" />
