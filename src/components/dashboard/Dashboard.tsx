@@ -349,14 +349,17 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
                   <span className="text-red-400 font-black text-sm">-${p.missedPayout}</span>
                 </div>
                 <div className="mt-1.5 space-y-1">
-                  {p.games.map(m => (
-                    <div key={m.game.id} className="text-[10px] text-gray-500 flex items-center justify-between">
-                      <span>
-                        {m.game.winningTeam} {Math.max(m.game.topTeamScore!, m.game.bottomTeamScore!)} - {m.game.losingTeam} {Math.min(m.game.topTeamScore!, m.game.bottomTeamScore!)}
-                      </span>
-                      <span>won by <span className="text-orange-400">{m.actualWinner}</span></span>
-                    </div>
-                  ))}
+                  {p.games.map(m => {
+                    const g = m.game;
+                    const winShort = g.winningTeam === g.topTeam ? (g.topTeamShort || g.topTeam) : (g.bottomTeamShort || g.bottomTeam);
+                    const loseShort = g.losingTeam === g.topTeam ? (g.topTeamShort || g.topTeam) : (g.bottomTeamShort || g.bottomTeam);
+                    return (
+                      <div key={g.id} className="text-[10px] text-gray-500 flex items-center justify-between gap-2">
+                        <span className="truncate">{winShort} {Math.max(g.topTeamScore!, g.bottomTeamScore!)} - {loseShort} {Math.min(g.topTeamScore!, g.bottomTeamScore!)}</span>
+                        <span className="shrink-0">→ <span className="text-orange-400">{m.actualWinner}</span></span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
