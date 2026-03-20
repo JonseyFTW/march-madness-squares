@@ -45,6 +45,8 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
   const hotDigitLosing = digitStats.losing.indexOf(Math.max(...digitStats.losing));
 
   // Near misses - people who would have won if not for the last basket
+  // For each game, find the ONE closest alternate score (fewest points changed)
+  // that would have given a different person the win
   const nearMissData = useMemo(() => {
     const misses: { person: string; game: Game; payout: number; actualWinner: string }[] = [];
     for (const g of finalGames) {
@@ -53,31 +55,30 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
       const loseScore = Math.min(g.topTeamScore, g.bottomTeamScore);
       const payout = g.payout || 0;
 
-      // Check alternate scores: last basket could be 1, 2, or 3 pts on either team
-      const alternates: [number, number][] = [];
-      // Winning team scored last (remove 1/2/3 from winner)
+      // Check alternate scores ordered by smallest point change first
+      // For each point value, check both teams, then move to next point value
+      let found = false;
       for (const pts of [1, 2, 3]) {
+        if (found) break;
+        const candidates: [number, number][] = [];
+        // Winning team scored last (remove pts from winner)
         const altWin = winScore - pts;
-        if (altWin >= 0 && altWin > loseScore) alternates.push([altWin, loseScore]);
-        // If removing points ties or flips the lead, use flipped winner/loser
-        if (altWin >= 0 && altWin < loseScore) alternates.push([loseScore, altWin]);
-      }
-      // Losing team scored last (remove 1/2/3 from loser)
-      for (const pts of [1, 2, 3]) {
+        if (altWin >= 0 && altWin > loseScore) candidates.push([altWin, loseScore]);
+        if (altWin >= 0 && altWin < loseScore) candidates.push([loseScore, altWin]);
+        // Losing team scored last (remove pts from loser)
         const altLose = loseScore - pts;
-        if (altLose >= 0) alternates.push([winScore, altLose]);
-      }
+        if (altLose >= 0) candidates.push([winScore, altLose]);
 
-      for (const [altWinScore, altLoseScore] of alternates) {
-        const altWinDigit = getLastDigit(altWinScore);
-        const altLoseDigit = getLastDigit(altLoseScore);
-        const colIdx = digitToGridIndex(altWinDigit, columnDigits);
-        const rowIdx = digitToGridIndex(altLoseDigit, rowDigits);
-        const altOwner = grid[rowIdx]?.[colIdx] || 'Unassigned';
-        if (altOwner !== g.squareWinner && altOwner !== 'Unassigned' && altOwner !== '') {
-          // Deduplicate: only add this person once per game
-          if (!misses.some(m => m.person === altOwner && m.game.id === g.id)) {
+        for (const [altWinScore, altLoseScore] of candidates) {
+          const altWinDigit = getLastDigit(altWinScore);
+          const altLoseDigit = getLastDigit(altLoseScore);
+          const colIdx = digitToGridIndex(altWinDigit, columnDigits);
+          const rowIdx = digitToGridIndex(altLoseDigit, rowDigits);
+          const altOwner = grid[rowIdx]?.[colIdx] || 'Unassigned';
+          if (altOwner !== g.squareWinner && altOwner !== 'Unassigned' && altOwner !== '') {
             misses.push({ person: altOwner, game: g, payout, actualWinner: g.squareWinner });
+            found = true;
+            break; // Only one near miss per game
           }
         }
       }
