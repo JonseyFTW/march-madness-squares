@@ -44,40 +44,57 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
   const hotDigit = digitStats.winning.indexOf(Math.max(...digitStats.winning));
   const hotDigitLosing = digitStats.losing.indexOf(Math.max(...digitStats.losing));
 
-  // Near misses - people who would have won if not for the last basket
+  // Near misses - people who would have won if the last basket hadn't happened
+  // Uses actual ESPN play-by-play data when available (previousWinScore/previousLoseScore)
+  // Falls back to 1-3 point heuristic when play-by-play data isn't available
   const nearMissData = useMemo(() => {
     const misses: { person: string; game: Game; payout: number; actualWinner: string }[] = [];
     for (const g of finalGames) {
       if (g.topTeamScore == null || g.bottomTeamScore == null || !g.squareWinner) continue;
-      const winScore = Math.max(g.topTeamScore, g.bottomTeamScore);
-      const loseScore = Math.min(g.topTeamScore, g.bottomTeamScore);
       const payout = g.payout || 0;
 
-      // Check alternate scores: last basket could be 1, 2, or 3 pts on either team
-      const alternates: [number, number][] = [];
-      // Winning team scored last (remove 1/2/3 from winner)
-      for (const pts of [1, 2, 3]) {
-        const altWin = winScore - pts;
-        if (altWin >= 0 && altWin > loseScore) alternates.push([altWin, loseScore]);
-        // If removing points ties or flips the lead, use flipped winner/loser
-        if (altWin >= 0 && altWin < loseScore) alternates.push([loseScore, altWin]);
-      }
-      // Losing team scored last (remove 1/2/3 from loser)
-      for (const pts of [1, 2, 3]) {
-        const altLose = loseScore - pts;
-        if (altLose >= 0) alternates.push([winScore, altLose]);
-      }
-
-      for (const [altWinScore, altLoseScore] of alternates) {
+      // If we have the actual previous score from ESPN play-by-play, use it
+      if (g.previousWinScore != null && g.previousLoseScore != null) {
+        const prevWin = g.previousWinScore;
+        const prevLose = g.previousLoseScore;
+        // Determine who was winning before the last basket
+        const altWinScore = Math.max(prevWin, prevLose);
+        const altLoseScore = Math.min(prevWin, prevLose);
+        if (altWinScore === altLoseScore) continue; // tie — no clear winner before last basket
         const altWinDigit = getLastDigit(altWinScore);
         const altLoseDigit = getLastDigit(altLoseScore);
         const colIdx = digitToGridIndex(altWinDigit, columnDigits);
         const rowIdx = digitToGridIndex(altLoseDigit, rowDigits);
         const altOwner = grid[rowIdx]?.[colIdx] || 'Unassigned';
         if (altOwner !== g.squareWinner && altOwner !== 'Unassigned' && altOwner !== '') {
-          // Deduplicate: only add this person once per game
-          if (!misses.some(m => m.person === altOwner && m.game.id === g.id)) {
+          misses.push({ person: altOwner, game: g, payout, actualWinner: g.squareWinner });
+        }
+        continue;
+      }
+
+      // Fallback: heuristic with 1-3 point changes
+      const winScore = Math.max(g.topTeamScore, g.bottomTeamScore);
+      const loseScore = Math.min(g.topTeamScore, g.bottomTeamScore);
+      let found = false;
+      for (const pts of [1, 2, 3]) {
+        if (found) break;
+        const candidates: [number, number][] = [];
+        const altWin = winScore - pts;
+        if (altWin >= 0 && altWin > loseScore) candidates.push([altWin, loseScore]);
+        if (altWin >= 0 && altWin < loseScore) candidates.push([loseScore, altWin]);
+        const altLose = loseScore - pts;
+        if (altLose >= 0) candidates.push([winScore, altLose]);
+
+        for (const [altWinScore, altLoseScore] of candidates) {
+          const altWinDigit = getLastDigit(altWinScore);
+          const altLoseDigit = getLastDigit(altLoseScore);
+          const colIdx = digitToGridIndex(altWinDigit, columnDigits);
+          const rowIdx = digitToGridIndex(altLoseDigit, rowDigits);
+          const altOwner = grid[rowIdx]?.[colIdx] || 'Unassigned';
+          if (altOwner !== g.squareWinner && altOwner !== 'Unassigned' && altOwner !== '') {
             misses.push({ person: altOwner, game: g, payout, actualWinner: g.squareWinner });
+            found = true;
+            break;
           }
         }
       }

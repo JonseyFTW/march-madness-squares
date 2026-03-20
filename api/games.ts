@@ -24,20 +24,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      // Bulk sync: replace all games for this board
+      // Bulk sync: upsert all games for this board
       const { boardId = 'default', games } = req.body;
 
       if (!Array.isArray(games)) {
         return res.status(400).json({ error: 'games must be an array' });
       }
 
-      // Delete existing games and insert new ones in a transaction-like approach
-      await sql`DELETE FROM games WHERE board_id = ${boardId}`;
-
+      // Upsert each game to avoid duplicate key errors from concurrent requests
+      const gameIds: string[] = [];
       for (const game of games) {
+        gameIds.push(game.id);
         await sql`
           INSERT INTO games (id, board_id, data)
           VALUES (${game.id}, ${boardId}, ${JSON.stringify(game)})
+          ON CONFLICT (id, board_id) DO UPDATE SET data = ${JSON.stringify(game)}
+        `;
+      }
+
+      // Remove games that are no longer in the synced set
+      if (gameIds.length > 0) {
+        await sql`
+          DELETE FROM games
+          WHERE board_id = ${boardId}
+          AND id != ALL(${gameIds}::text[])
         `;
       }
 

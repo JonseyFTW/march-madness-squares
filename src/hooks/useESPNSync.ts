@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Game } from '../types';
-import { fetchAllTournamentGames, mergeESPNGames } from '../utils/espnApi';
+import { fetchAllTournamentGames, mergeESPNGames, fetchPreviousScore } from '../utils/espnApi';
 import { calculateGameResult } from '../utils/gameUtils';
 
 const POLL_INTERVAL_LIVE = 30_000; // 30 seconds when games are live
@@ -62,6 +62,40 @@ export function useESPNSync({ games, grid, columnDigits, rowDigits, onSyncGames 
         }
         return g;
       });
+
+      // Fetch previous scores for final games that don't have them yet
+      const needsPrevScore = merged.filter(
+        g => g.status === 'final' && g.espnId && g.previousWinScore == null
+      );
+      if (needsPrevScore.length > 0) {
+        const prevScoreResults = await Promise.all(
+          needsPrevScore.map(async (g) => {
+            const prev = await fetchPreviousScore(g.espnId!);
+            if (!prev) return null;
+            // Map home/away scores to top/bottom based on topTeamIsHome
+            const topIsHome = g.topTeamIsHome !== false; // default true
+            const topPrev = topIsHome ? prev.previousHomeScore : prev.previousAwayScore;
+            const bottomPrev = topIsHome ? prev.previousAwayScore : prev.previousHomeScore;
+            // Determine win/lose previous scores
+            const winScore = Math.max(g.topTeamScore!, g.bottomTeamScore!);
+            const loseScore = Math.min(g.topTeamScore!, g.bottomTeamScore!);
+            const topWon = g.topTeamScore! >= g.bottomTeamScore!;
+            return {
+              espnId: g.espnId,
+              previousWinScore: topWon ? topPrev : bottomPrev,
+              previousLoseScore: topWon ? bottomPrev : topPrev,
+            };
+          })
+        );
+        for (const result of prevScoreResults) {
+          if (!result) continue;
+          const game = merged.find(g => g.espnId === result.espnId);
+          if (game) {
+            game.previousWinScore = result.previousWinScore;
+            game.previousLoseScore = result.previousLoseScore;
+          }
+        }
+      }
 
       const live = merged.filter(g => g.status === 'in_progress').length;
       setLiveCount(live);
