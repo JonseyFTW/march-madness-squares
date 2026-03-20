@@ -328,7 +328,7 @@ export default function Dashboard({ grid, games, columnDigits, rowDigits, onNavi
           <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
             <Frown size={16} className="text-red-400" />
             Unluckiest Losers
-            <span className="text-[10px] text-gray-500 font-normal ml-1">Would have won if not for the last basket</span>
+            <span className="text-[10px] text-gray-500 font-normal ml-1">Closest to winning with a 1-3 point swing</span>
           </h3>
           <div className="space-y-2">
             {nearMissData.map((p, i) => (
