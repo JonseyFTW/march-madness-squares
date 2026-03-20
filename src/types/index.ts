@@ -28,6 +28,9 @@ export interface Game {
   statusDetail?: string;
   displayClock?: string;
   period?: number;
+  topTeamIsHome?: boolean; // Whether topTeam is the ESPN home team (for play-by-play score mapping)
+  previousWinScore?: number; // Score of winning team before last basket (from ESPN play-by-play)
+  previousLoseScore?: number; // Score of losing team before last basket (from ESPN play-by-play)
   winningTeam?: string;
   losingTeam?: string;
   winningDigit?: number;

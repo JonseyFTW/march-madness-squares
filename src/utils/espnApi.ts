@@ -77,6 +77,7 @@ export interface ESPNGame {
   scheduledDate: string;
   displayClock?: string;
   period?: number;
+  topTeamIsHome?: boolean;
 }
 
 function parseRoundFromHeadline(headline: string): RoundNumber {
@@ -124,9 +125,11 @@ function parseESPNEvent(event: ESPNEvent): ESPNGame {
   // Put higher-seeded team (lower number) on top
   let topTeam = home;
   let bottomTeam = away;
+  let topTeamIsHome = true;
   if (homeSeed && awaySeed && awaySeed < homeSeed) {
     topTeam = away;
     bottomTeam = home;
+    topTeamIsHome = false;
   }
 
   const statusName = comp.status?.type?.name || event.status?.type?.name || '';
@@ -161,6 +164,7 @@ function parseESPNEvent(event: ESPNEvent): ESPNGame {
     scheduledDate: event.date,
     displayClock,
     period,
+    topTeamIsHome,
   };
 }
 
@@ -303,6 +307,67 @@ export function mergeESPNGames(espnGames: ESPNGame[], existingGames: Game[]): Ga
   return merged;
 }
 
+const ESPN_CORE_BASE = 'https://sports.core.api.espn.com/v2/sports/basketball/leagues/mens-college-basketball';
+
+interface ESPNPlay {
+  homeScore: number;
+  awayScore: number;
+  scoringPlay: boolean;
+  scoreValue: number;
+}
+
+/**
+ * Fetch the score before the last basket from ESPN's core play-by-play API.
+ * Returns { previousHomeScore, previousAwayScore } or null if unavailable.
+ */
+export async function fetchPreviousScore(espnId: string): Promise<{ previousHomeScore: number; previousAwayScore: number } | null> {
+  try {
+    // First, get the total play count
+    const countUrl = `${ESPN_CORE_BASE}/events/${espnId}/competitions/${espnId}/plays?limit=1`;
+    const countRes = await fetch(countUrl);
+    if (!countRes.ok) return null;
+    const countData = await countRes.json();
+    const totalPlays = countData.count;
+    if (!totalPlays || totalPlays < 2) return null;
+
+    // Fetch the last ~20 plays to find the last two scoring plays
+    const lastPageSize = 20;
+    const page = Math.max(1, Math.ceil(totalPlays / lastPageSize));
+    const playsUrl = `${ESPN_CORE_BASE}/events/${espnId}/competitions/${espnId}/plays?limit=${lastPageSize}&page=${page}`;
+    const playsRes = await fetch(playsUrl);
+    if (!playsRes.ok) return null;
+    const playsData = await playsRes.json();
+    const plays: ESPNPlay[] = playsData.items || [];
+
+    // Find scoring plays from the end
+    const scoringPlays = plays.filter((p: ESPNPlay) => p.scoringPlay);
+    if (scoringPlays.length < 2) {
+      // Need more data — try previous page too
+      if (page > 1) {
+        const prevUrl = `${ESPN_CORE_BASE}/events/${espnId}/competitions/${espnId}/plays?limit=${lastPageSize}&page=${page - 1}`;
+        const prevRes = await fetch(prevUrl);
+        if (prevRes.ok) {
+          const prevData = await prevRes.json();
+          const prevPlays: ESPNPlay[] = prevData.items || [];
+          const prevScoring = prevPlays.filter((p: ESPNPlay) => p.scoringPlay);
+          scoringPlays.unshift(...prevScoring);
+        }
+      }
+    }
+
+    if (scoringPlays.length < 2) return null;
+
+    // The second-to-last scoring play has the score before the final basket
+    const previousPlay = scoringPlays[scoringPlays.length - 2];
+    return {
+      previousHomeScore: previousPlay.homeScore,
+      previousAwayScore: previousPlay.awayScore,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function updateGameFromESPN(existing: Game, espn: ESPNGame): Game {
   return {
     ...existing,
@@ -321,5 +386,6 @@ function updateGameFromESPN(existing: Game, espn: ESPNGame): Game {
     statusDetail: espn.statusDetail,
     displayClock: espn.displayClock,
     period: espn.period,
+    topTeamIsHome: espn.topTeamIsHome,
   } as Game;
 }
