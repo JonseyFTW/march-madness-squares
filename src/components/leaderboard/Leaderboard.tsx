@@ -8,11 +8,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 interface LeaderboardProps {
   grid: string[][];
   games: Game[];
+  columnDigits: number[];
+  rowDigits: number[];
 }
 
 const BAR_COLORS = ['#f59e0b', '#9ca3af', '#b45309', '#6366f1', '#22c55e', '#ec4899', '#14b8a6', '#8b5cf6', '#ef4444', '#06b6d4'];
 
-export default function Leaderboard({ grid, games }: LeaderboardProps) {
+export default function Leaderboard({ grid, games, columnDigits, rowDigits }: LeaderboardProps) {
   const participants = useMemo(() => calculateParticipants(grid, games), [grid, games]);
   const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
 
@@ -145,7 +147,7 @@ export default function Leaderboard({ grid, games }: LeaderboardProps) {
                       <div className="mt-2">
                         <span className="text-xs text-gray-400">Squares: </span>
                         <span className="text-xs text-gray-300">
-                          {p.squares.map(s => `(${s.col},${s.row})`).join(', ')}
+                          {p.squares.map(s => `(${columnDigits[s.col]},${rowDigits[s.row]})`).join(', ')}
                         </span>
                       </div>
                     )}

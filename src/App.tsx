@@ -124,7 +124,7 @@ function App() {
           />
         )}
         {activeTab === 'leaderboard' && (
-          <Leaderboard grid={state.grid} games={state.games} />
+          <Leaderboard grid={state.grid} games={state.games} columnDigits={state.columnDigits} rowDigits={state.rowDigits} />
         )}
         {activeTab === 'admin' && (
           <AdminPanel
