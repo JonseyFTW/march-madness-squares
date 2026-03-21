@@ -25,7 +25,14 @@ interface GamesViewProps {
 }
 
 export default function GamesView({ games, grid, columnDigits, rowDigits, isAdmin, onUpdateGame, onAddGame, onRemoveGame, espnSync }: GamesViewProps) {
-  const [expandedRounds, setExpandedRounds] = useState<Set<number>>(new Set([68, 64, 32, 16, 8, 4, 2]));
+  // Rounds where all games are final start collapsed
+  const [expandedRounds, setExpandedRounds] = useState<Set<number>>(() => {
+    const allRounds: RoundNumber[] = [68, 64, 32, 16, 8, 4, 2];
+    return new Set(allRounds.filter(r => {
+      const roundGames = games.filter(g => g.round === r);
+      return roundGames.length === 0 || roundGames.some(g => g.status !== 'final');
+    }));
+  });
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Game>>({});
 
